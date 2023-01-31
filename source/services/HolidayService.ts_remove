@@ -1,0 +1,74 @@
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { useHolidayDao } from '../dao/HolidayDao.ts_remove';
+import { HolidayRouteCreateInterface, HolidayRouteInterface, HolidayRouteUpdateInterface } from '../interfaces/routes/HolidayRouteInterface';
+import { HeadersRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import {
+    useHolidayTransformCreatePayload,
+    useHolidayTransformDeletePayload,
+    useHolidayTransformPayload,
+    useHolidayTransformRestorePayload,
+    useHolidayTransformUpdatePayload
+} from '../transformers/HolidayTransformer';
+import { useTransformPaginationPayload } from '../transformers/Pagination';
+const { getHoliday: getHolidayDao, createHoliday: createHolidayDao, updateHoliday: updateHolidayDao, deleteHoliday: deleteHolidayDao, restoreHoliday: restoreHolidayDao } = useHolidayDao();
+
+export const useHolidayService = () => {
+    const getHoliday = async (request: HolidayRouteInterface, headers: HeadersRouteInterface) => {
+        try {
+            const transformedPagination = useTransformPaginationPayload(headers);
+            const payload = useHolidayTransformPayload(request);
+            return await getHolidayDao(payload, transformedPagination, headers);
+        } catch (err) {
+            console.log('Error Service: getHolidayDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const createHoliday = async (userData: { id: string; table: string }, request: HolidayRouteCreateInterface) => {
+        try {
+            const payload = useHolidayTransformCreatePayload(userData, request);
+            return await createHolidayDao(payload);
+        } catch (err) {
+            console.log('Error Service: createHolidayDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const updateHoliday = async (userData: { id: string; table: string }, request: HolidayRouteUpdateInterface) => {
+        try {
+            const payload = useHolidayTransformUpdatePayload(userData, request);
+            return await updateHolidayDao(request.id, payload);
+        } catch (err) {
+            console.log('Error Service: updateHoliday -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const deleteHoliday = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = useHolidayTransformDeletePayload(userData);
+            return await deleteHolidayDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: deleteHolidayDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const restoreHoliday = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = useHolidayTransformRestorePayload(userData);
+            return await restoreHolidayDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: restoreHoliday -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    return {
+        getHoliday,
+        createHoliday,
+        updateHoliday,
+        deleteHoliday,
+        restoreHoliday
+    };
+};

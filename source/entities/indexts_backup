@@ -1,0 +1,12 @@
+import { CustomerEntity } from './CustomerEntities';
+import { EWTEntity } from './EWTEntities';
+import { HolidayEntity } from './HolidayEntities';
+import { OrderEntity } from './OrderEntities';
+import { ParameterEntity } from './ParameterEntities';
+import { PaymentEntity } from './PaymentEntities';
+import { PersonnelEntity } from './PersonnelEntities';
+import { RoleEntity } from './RoleEntities';
+import { SessionEntity } from './SessionEntites';
+import { UserEntity } from './UserEntities';
+
+export default [CustomerEntity, EWTEntity, HolidayEntity, OrderEntity, ParameterEntity, PaymentEntity, PersonnelEntity, RoleEntity, SessionEntity, UserEntity];

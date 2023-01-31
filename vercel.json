@@ -1,0 +1,6 @@
+{
+    "version": 2,
+    "name": "fairyskin_backend",
+    "builds": [{ "src": "api-build/server.js", "use": "@vercel/node" }],
+    "routes": [{ "src": "/(.*)", "dest": "api-build/server.js" }]
+}

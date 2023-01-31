@@ -1,0 +1,37 @@
+import { config } from './source/config';
+import { APP_ZONE } from './source/config/config';
+import { configProd } from './source/config/database/typeorm.config';
+
+switch (APP_ZONE) {
+    case 'development':
+        module.exports = config;
+        break;
+    case 'production':
+        module.exports = configProd;
+        break;
+    default:
+        module.exports = config;
+}
+
+{
+    "type": "postgres",
+    "host": "ec2-34-200-205-45.compute-1.amazonaws.com",
+    "port": "5432",
+    "username": "dmkkxyisgjisir",
+    "password": "4c76811ebd7aa64d718ec12934763ee255ab9b3c2841c222726ab788a2f73b02",
+    "database": "denqegofuo3pgr",
+    "extra": {
+        "ssl": {
+            "rejectUnauthorized": false
+        }
+    },
+    "synchronize": "true",
+    "logging": true,
+    "entities": ["dist/entities/*.*"],
+    "migrations": ["dist/migrations/*.*"],
+    "cli": {
+        "entitiesDir": "source/entities",
+        "migrationsDir": "source/migrations"
+    }
+}
+

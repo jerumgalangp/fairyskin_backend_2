@@ -1,0 +1,277 @@
+import moment from 'moment';
+import { EWTDaoCreateInterface, EWTDaoDeleteInterface, EWTDaoRestoreInterface, EWTDaoUpdateInterface } from 'source/interfaces/dao/EWTDaoInterface';
+import { getManager, getRepository } from 'typeorm';
+import { Entities } from '../constant/Entities';
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { EWTEntity } from '../entities/EWTEntities.ts_remove';
+import { PaginationDaoInterface } from '../interfaces/dao/PaginationDaoInterface';
+import { EWTRouteInterface } from '../interfaces/routes/EWTRouteInterface';
+import { HeadersRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+
+export const useEWTDao = () => {
+    const getEWT = async (_payload: { [column: string]: any }[], pagination: PaginationDaoInterface, _headers: HeadersRouteInterface) => {
+        try {
+            // let defaultSort = 'created_at';
+            // if (headers.sort_by !== undefined) defaultSort = headers.sort_by;
+
+            // let queries: FindManyOptions<EWTEntity> = {
+            //     withDeleted: headers.withdeleted === 'true',
+            //     order: { [defaultSort]: headers.sort ? (headers.sort === 'DESC' ? 'DESC' : 'ASC') : 'DESC' },
+            //     skip: pagination.skip,
+            //     take: pagination.take,
+            //     relations: ['ewt_personnel']
+            // };
+
+            // if (payload.length > 0) queries = { ...queries, where: payload };
+
+            // let a = await getRepository(EWTEntity).find({ join: { alias: 'payment', leftJoinAndSelect: { company: 'payment.ewt_id' } } });
+
+            const results = await getRepository(EWTEntity)
+                .createQueryBuilder(Entities.EWT)
+                .leftJoinAndSelect('payment', 'payment', 'ewt.id = payment.ewt_id')
+                .leftJoinAndSelect('order', 'order', 'order.id = payment.payment_order_id')
+                .leftJoinAndSelect('customer', 'customer', 'customer.id = order.order_customer_id')
+                .leftJoinAndSelect('personnel', 'personnel', 'personnel.id = ewt.ewt_personnel_id')
+                .orderBy('ewt.id', 'ASC')
+                .getRawMany();
+
+            //console.log('sssssssssssssssssssssssss', results);
+            //console.log('----------------------------------');
+
+            //const results = await EWTEntity.find(queries);
+            const total = results.length;
+
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.Success],
+                message: 'Successfully Retrieved data.',
+                results,
+                pagination: { total, current: pagination.current }
+            };
+        } catch (err) {
+            console.log('Error Dao: Query for getEWTDao Transaction -> ', err);
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.BadRequest],
+                message: err.message
+            };
+        }
+    };
+
+    const createEWT = async (payload: EWTDaoCreateInterface) => {
+        try {
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        //CREATE EWT
+                        const query = transactionEntityManager.getRepository(EWTEntity).createQueryBuilder(Entities.EWT).insert().into(EWTEntity).values(payload);
+                        await query.execute();
+                        // const { id } = data.identifiers[0];
+
+                        // //UPDATE PAYMENT
+                        // await transactionEntityManager
+                        //     .getRepository(PaymentEntity)
+                        //     .createQueryBuilder(Entities.PAYMENT)
+                        //     .update(PaymentEntity)
+                        //     .set({
+
+                        //         payment_ewt_percentage: payload.payment_ewt_percentage,
+                        //         payment_ewt_amount: payload.ewt_amount,
+                        //         payment_ewt_due_date: payload.ewt_due_date,
+                        //         updated_by: payload.created_by,
+                        //         updated_at: new Date(),
+                        //         ewt_id: id
+                        //     })
+                        //     .where('id = :id', { id: payload.ewt_payment_id })
+                        //     .execute();
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Updating Payment Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Created], message: 'Successfully created.' };
+                } else {
+                    console.log('Error Dao: create ewt dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: 'Error Creating EWT' };
+                }
+            } catch (err) {
+                console.log('Error Dao: create ewt -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: Create EWT Transaction -> ', err);
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.BadRequest],
+                message: err.message
+            };
+        }
+    };
+
+    const updateEWT = async (id: string, payload: EWTDaoUpdateInterface) => {
+        try {
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        console.log('----------------------------');
+                        console.log(payload);
+                        console.log('----------------------------');
+
+                        //UPDATE PAYMENT
+                        // await transactionEntityManager
+                        //     .getRepository(PaymentEntity)
+                        //     .createQueryBuilder(Entities.PAYMENT)
+                        //     .update(PaymentEntity)
+                        //     .set({
+
+                        //         payment_ewt_due_date: payload.ewt_due_date,
+                        //         updated_by: payload.updated_by,
+                        //         updated_at: new Date()
+                        //     })
+                        //     .where('id = :id', { id: payload.ewt_payment_id })
+                        //     .execute();
+
+                        //UPDATE EWT
+                        await transactionEntityManager
+                            .getRepository(EWTEntity)
+                            .createQueryBuilder(Entities.EWT)
+                            .update(EWTEntity)
+                            .set({
+                                payment_ewt_percentage: payload.payment_ewt_percentage,
+                                ewt_personnel_id: payload.ewt_personnel_id,
+                                ewt_amount: payload.ewt_amount,
+                                ewt_collected_date: payload.ewt_collected_date,
+                                ewt_due_date: payload.ewt_due_date,
+                                updated_by: payload.updated_by,
+                                updated_at: new Date()
+                            })
+                            .where('id = :id', { id: id })
+                            .execute();
+
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Updating Payment Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Updated], message: 'Successfully updated.' };
+                } else {
+                    console.log('Error Dao: Updating ewt dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: 'Error Updating EWT' };
+                }
+            } catch (err) {
+                console.log('Error Dao: Updating ewt -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: update EWT -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    const deleteEWT = async (id: string, _payload: EWTDaoDeleteInterface) => {
+        try {
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        //UPDATE PAYMENT
+                        // await transactionEntityManager
+                        //     .getRepository(PaymentEntity)
+                        //     .createQueryBuilder(Entities.PAYMENT)
+                        //     .update(PaymentEntity)
+                        //     .set({
+                        //         payment_ewt_due_date: undefined,
+                        //         payment_ewt_amount: undefined,
+                        //         payment_ewt: 'N',
+                        //         payment_ewt_percentage: undefined,
+                        //         ewt_id: undefined,
+                        //         updated_at: new Date(),
+                        //         updated_by: payload.deleted_by
+                        //     })
+                        //     .where('ewt_id = :ewt_id', { ewt_id: id })
+                        //     .execute();
+
+                        await transactionEntityManager.getRepository(EWTEntity).delete({ id });
+
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Deleting ewt Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Deleted], message: 'Successfully deleted.' };
+                } else {
+                    console.log('Error Dao: delete ewt dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: 'Error Deleting EWT' };
+                }
+            } catch (err) {
+                console.log('Error Dao: delete ewt -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: delete EWT -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    const restoreEWT = async (id: string, payload: EWTDaoRestoreInterface) => {
+        try {
+            await getRepository(EWTEntity)
+                .createQueryBuilder(Entities.EWT)
+                .update(EWTEntity)
+                .set({ ...payload, updated_at: new Date() })
+                .where('id = :id', { id })
+                .execute();
+            await getRepository(EWTEntity).restore({ id });
+            return { ...HTTP_RESPONSES[HttpResponseType.Restored], message: 'Successfully restored.' };
+        } catch (err) {
+            console.log('Error Dao: restoreEWT -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    const getEWTReport = async (request: EWTRouteInterface) => {
+        try {
+            let df_value = request!.df as string;
+            let dt_value = request!.dt as string;
+
+            let df_date: any = moment(new Date(df_value)).format('DD/MM/yyyy');
+            let dt_date: any = moment(new Date(dt_value)).add(1, 'day').format('DD/MM/yyyy');
+
+            const results = await getRepository(EWTEntity)
+                .createQueryBuilder(Entities.EWT)
+                .leftJoinAndSelect('payment', 'payment', 'ewt.id = payment.ewt_id')
+                .leftJoinAndSelect('order', 'order', 'order.id = payment.payment_order_id')
+                .leftJoinAndSelect('customer', 'customer', 'customer.id = order.order_customer_id')
+                .leftJoinAndSelect('personnel', 'personnel', 'personnel.id = ewt.ewt_personnel_id')
+                .where("ewt.created_at BETWEEN  date('" + df_date + "')AND  date('" + dt_date + "') ")
+                .orderBy('ewt.id', 'ASC')
+                .getRawMany();
+
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.Success],
+                message: 'Successfully Retrieved data.',
+                results
+            };
+        } catch (err) {
+            console.log('Error Dao: Query for getEWTReport Transaction -> ', err);
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.BadRequest],
+                message: err.message
+            };
+        }
+    };
+
+    return {
+        getEWT,
+        createEWT,
+        updateEWT,
+        deleteEWT,
+        restoreEWT,
+        getEWTReport
+    };
+};

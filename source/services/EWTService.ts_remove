@@ -1,0 +1,74 @@
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { useEWTDao } from '../dao/EWTDao.ts_remove';
+import { EWTRouteCreateInterface, EWTRouteInterface, EWTRouteUpdateInterface } from '../interfaces/routes/EWTRouteInterface';
+import { HeadersRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import { useEWTTransformCreatePayload, useEWTTransformDeletePayload, useEWTTransformPayload, useEWTTransformRestorePayload, useEWTTransformUpdatePayload } from '../transformers/EWTTransformer';
+import { useTransformPaginationPayload } from '../transformers/Pagination';
+const { getEWT: getEWTDao, createEWT: createEWTDao, updateEWT: updateEWTDao, deleteEWT: deleteEWTDao, restoreEWT: restoreEWTDao, getEWTReport: getEWTReportDao } = useEWTDao();
+
+export const useEWTService = () => {
+    const getEWT = async (request: EWTRouteInterface, headers: HeadersRouteInterface) => {
+        try {
+            const transformedPagination = useTransformPaginationPayload(headers);
+            let from_report = request!.from_report as string;
+
+            if (from_report !== undefined) {
+                return await getEWTReportDao(request);
+            } else {
+                const payload = useEWTTransformPayload(request);
+                return await getEWTDao(payload, transformedPagination, headers);
+            }
+        } catch (err) {
+            console.log('Error Service: getEWTDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const createEWT = async (userData: { id: string; table: string }, request: EWTRouteCreateInterface) => {
+        try {
+            const payload = useEWTTransformCreatePayload(userData, request);
+            return await createEWTDao(payload);
+        } catch (err) {
+            console.log('Error Service: createEWTDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const updateEWT = async (userData: { id: string; table: string }, request: EWTRouteUpdateInterface) => {
+        try {
+            const payload = useEWTTransformUpdatePayload(userData, request);
+            return await updateEWTDao(request.id, payload);
+        } catch (err) {
+            console.log('Error Service: updateEWT -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const deleteEWT = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = useEWTTransformDeletePayload(userData);
+            return await deleteEWTDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: deleteEWTDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const restoreEWT = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = useEWTTransformRestorePayload(userData);
+            return await restoreEWTDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: restoreEWT -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    return {
+        getEWT,
+        createEWT,
+        updateEWT,
+        deleteEWT,
+        restoreEWT
+    };
+};

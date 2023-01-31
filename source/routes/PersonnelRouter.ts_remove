@@ -1,0 +1,13 @@
+import { Router as useRouter } from 'express';
+import { usePersonnelController } from '../controllers/PersonnelController.ts_remove';
+
+const Router: useRouter = useRouter();
+const { getPersonnel, createPersonnel, updatePersonnel, deletePersonnel, restorePersonnel } = usePersonnelController();
+
+Router.get('/personnel', getPersonnel);
+Router.post('/personnel', createPersonnel);
+Router.put('/personnel', updatePersonnel);
+Router.delete('/personnel', deletePersonnel);
+Router.put('/personnel/restore', restorePersonnel);
+
+export default Router;

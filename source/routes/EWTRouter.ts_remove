@@ -1,0 +1,13 @@
+import { Router as useRouter } from 'express';
+import { useEWTController } from '../controllers/EWTController.ts_remove';
+
+const Router: useRouter = useRouter();
+const { getEWT, createEWT, updateEWT, deleteEWT, restoreEWT } = useEWTController();
+
+Router.get('/ewt', getEWT);
+Router.post('/ewt', createEWT);
+Router.put('/ewt', updateEWT);
+Router.delete('/ewt', deleteEWT);
+Router.put('/ewt/restore', restoreEWT);
+
+export default Router;

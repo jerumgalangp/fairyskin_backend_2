@@ -1,0 +1,289 @@
+import { HolidayDaoCreateInterface, HolidayDaoDeleteInterface, HolidayDaoRestoreInterface, HolidayDaoUpdateInterface } from 'source/interfaces/dao/HolidayDaoInterface';
+import { FindManyOptions, getManager, getRepository, InsertResult } from 'typeorm';
+import { Entities } from '../constant/Entities';
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { HolidayEntity } from '../entities/HolidayEntities.ts_remove';
+import { OrderEntity } from '../entities/OrderEntities';
+import { PaginationDaoInterface } from '../interfaces/dao/PaginationDaoInterface';
+import { HeadersRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+
+export const useHolidayDao = () => {
+    const getHoliday = async (payload: { [column: string]: any }[], pagination: PaginationDaoInterface, headers: HeadersRouteInterface) => {
+        try {
+            let defaultSort = 'holiday_date';
+            if (headers.sort_by !== undefined) defaultSort = headers.sort_by;
+
+            let queries: FindManyOptions<HolidayEntity> = {
+                withDeleted: headers.withdeleted === 'true',
+                order: { [defaultSort]: headers.sort ? (headers.sort === 'DESC' ? 'DESC' : 'ASC') : 'ASC' },
+                skip: pagination.skip,
+                take: pagination.take
+            };
+
+            if (payload.length > 0) queries = { ...queries, where: payload };
+
+            const results = await HolidayEntity.find(queries);
+            const total = await HolidayEntity.count(queries);
+
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.Success],
+                message: 'Successfully Retrieved data.',
+                results,
+                pagination: { total, current: pagination.current }
+            };
+        } catch (err) {
+            console.log('Error Dao: Query for getHolidayDao Transaction -> ', err);
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.BadRequest],
+                message: err.message
+            };
+        }
+    };
+
+    const createHoliday = async (payload: HolidayDaoCreateInterface) => {
+        try {
+            let id = '';
+            let errorMessage = '';
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        const UserRepository = transactionEntityManager.getRepository(HolidayEntity);
+                        const results = await UserRepository.findOne({ where: { holiday_date: payload.holiday_date } });
+
+                        if (results !== undefined) {
+                            errorMessage = 'Holiday Date is already existing!';
+                            throw new Error(errorMessage);
+                        }
+
+                        const holidayList = await transactionEntityManager.getRepository(HolidayEntity).createQueryBuilder('holiday').select(['holiday.holiday_date']).getMany();
+                        const orderList = await transactionEntityManager.getRepository(OrderEntity).createQueryBuilder('order').leftJoinAndSelect('order.order_customer', 'customer').getMany();
+
+                        console.log(orderList);
+
+                        let holidays: any = [];
+
+                        holidayList.map((v) => {
+                            return holidays.push(v.holiday_date);
+                        });
+
+                        holidays.push(payload.holiday_date);
+
+                        //UPDATE ORDER DUE DATE
+                        // orderList.map(async (v) => {
+                        //     let date = processDueDate(v.order_process_date, v.order_customer.customer_terms, holidays);
+                        //     //let obj = { order_id: v.id, order_due_date: date };
+                        //     //newList.push(obj);
+                        //     //console.log(date);
+                        //     await transactionEntityManager
+                        //         .getRepository(OrderEntity)
+                        //         .createQueryBuilder(Entities.ORDER)
+                        //         .update(OrderEntity)
+                        //         .set({
+                        //             order_due_date: date,
+                        //             updated_by: payload.created_by,
+                        //             updated_at: new Date()
+                        //         })
+                        //         .where('id = :id', { id: v.id })
+                        //         .execute();
+                        // });
+
+                        const query = transactionEntityManager.getRepository(HolidayEntity).createQueryBuilder(Entities.HOLIDAY).insert().into(HolidayEntity).values(payload);
+                        const data: InsertResult = await query.execute();
+                        const res = data.identifiers[0];
+                        id = res.id;
+
+                        //throw new Error('ERROR');
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Creating Payment Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Created], id, message: 'Successfully created.' };
+                } else {
+                    console.log('Error Dao: Create Holiday dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: errorMessage !== '' ? errorMessage : 'Error Creating Holiday' };
+                }
+            } catch (err) {
+                console.log('Error Dao: Create Holiday -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: Create Holiday Transaction -> ', err);
+            return {
+                ...HTTP_RESPONSES[HttpResponseType.BadRequest],
+                message: err.message
+            };
+        }
+    };
+
+    const updateHoliday = async (id: string, payload: HolidayDaoUpdateInterface) => {
+        try {
+            let errorMessage = '';
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        const UserRepository = transactionEntityManager.getRepository(HolidayEntity);
+                        const results = await UserRepository.findOne({ where: { holiday_date: payload.holiday_date } });
+
+                        if (results !== undefined) {
+                            errorMessage = 'Holiday Date is already existing!';
+                            throw new Error(errorMessage);
+                        }
+
+                        const holidayList = await transactionEntityManager
+                            .getRepository(HolidayEntity)
+                            .createQueryBuilder('holiday')
+                            .select(['holiday.holiday_date'])
+                            .where('holiday.id != :id', { id: id })
+                            .getMany();
+
+                        const orderList = await transactionEntityManager.getRepository(OrderEntity).createQueryBuilder('order').leftJoinAndSelect('order.order_customer', 'customer').getMany();
+                        console.log(orderList);
+                        let holidays: any = [];
+
+                        holidayList.map((v) => {
+                            return holidays.push(v.holiday_date);
+                        });
+
+                        holidays.push(payload.holiday_date);
+
+                        //UPDATE ORDER DUE DATE
+                        // orderList.map(async (v) => {
+                        //     let date = processDueDate(v.order_process_date, v.order_customer.customer_terms, holidays);
+                        //     //let obj = { order_id: v.id, order_due_date: date };
+                        //     //newList.push(obj);
+
+                        //     await transactionEntityManager
+                        //         .getRepository(OrderEntity)
+                        //         .createQueryBuilder(Entities.ORDER)
+                        //         .update(OrderEntity)
+                        //         .set({
+                        //             order_due_date: date,
+                        //             updated_by: payload.updated_by,
+                        //             updated_at: new Date()
+                        //         })
+                        //         .where('id = :id', { id: v.id })
+                        //         .execute();
+                        // });
+
+                        //UPDATE HOLIDAY
+                        const query = transactionEntityManager.getRepository(HolidayEntity).createQueryBuilder(Entities.HOLIDAY).update(HolidayEntity).set(payload).where('id = :id', { id });
+                        await query.execute();
+
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Updating Payment Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Updated], message: 'Successfully updated.' };
+                } else {
+                    console.log('Error Dao: Updating Holiday dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: errorMessage !== '' ? errorMessage : 'Error Updating Holiday' };
+                }
+            } catch (err) {
+                console.log('Error Dao: Updating Holiday -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: update Holiday -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    const deleteHoliday = async (id: string, _payload: HolidayDaoDeleteInterface) => {
+        try {
+            let errorMessage = '';
+            try {
+                const transaction = await getManager().transaction(async (transactionEntityManager) => {
+                    try {
+                        const holidayList = await transactionEntityManager
+                            .getRepository(HolidayEntity)
+                            .createQueryBuilder('holiday')
+                            .select(['holiday.holiday_date'])
+                            .where('holiday.id != :id', { id: id })
+                            .getMany();
+
+                        const orderList = await transactionEntityManager.getRepository(OrderEntity).createQueryBuilder('order').leftJoinAndSelect('order.order_customer', 'customer').getMany();
+                        console.log(orderList);
+                        let holidays: any = [];
+
+                        holidayList.map((v) => {
+                            return holidays.push(v.holiday_date);
+                        });
+
+                        //UPDATE ORDER DUE DATE
+                        // orderList.map(async (v) => {
+                        //     let date = processDueDate(v.order_process_date, v.order_customer.customer_terms, holidays);
+                        //     //let obj = { order_id: v.id, order_due_date: date };
+                        //     //newList.push(obj);
+
+                        //     await transactionEntityManager
+                        //         .getRepository(OrderEntity)
+                        //         .createQueryBuilder(Entities.ORDER)
+                        //         .update(OrderEntity)
+                        //         .set({
+                        //             order_due_date: date,
+                        //             updated_by: payload.deleted_by,
+                        //             updated_at: new Date()
+                        //         })
+                        //         .where('id = :id', { id: v.id })
+                        //         .execute();
+                        // });
+
+                        //UPDATE HOLIDAY
+                        //await getRepository(HolidayEntity).createQueryBuilder(Entities.HOLIDAY).update(HolidayEntity).set(payload).where('id = :id', { id }).execute();
+                        await transactionEntityManager.getRepository(HolidayEntity).delete({ id });
+
+                        return true;
+                    } catch (err) {
+                        console.log('Error Dao: Deleting Payment Dao Transaction -> ', err);
+                        return false;
+                    }
+                });
+
+                if (transaction) {
+                    return { ...HTTP_RESPONSES[HttpResponseType.Deleted], message: 'Successfully deleted.' };
+                } else {
+                    console.log('Error Dao: Deleting Holiday dao -> ');
+                    return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: errorMessage !== '' ? errorMessage : 'Error Deleting Holiday' };
+                }
+            } catch (err) {
+                console.log('Error Dao: Deleting Holiday -> ', err);
+                return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+            }
+        } catch (err) {
+            console.log('Error Dao: delete Holiday -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    const restoreHoliday = async (id: string, payload: HolidayDaoRestoreInterface) => {
+        try {
+            await getRepository(HolidayEntity)
+                .createQueryBuilder(Entities.HOLIDAY)
+                .update(HolidayEntity)
+                .set({ ...payload, updated_at: new Date() })
+                .where('id = :id', { id })
+                .execute();
+            await getRepository(HolidayEntity).restore({ id });
+            return { ...HTTP_RESPONSES[HttpResponseType.Restored], message: 'Successfully restored.' };
+        } catch (err) {
+            console.log('Error Dao: restoreHoliday -> ', err);
+            return { ...HTTP_RESPONSES[HttpResponseType.BadRequest], message: err.message };
+        }
+    };
+
+    return {
+        getHoliday,
+        createHoliday,
+        updateHoliday,
+        deleteHoliday,
+        restoreHoliday
+    };
+};

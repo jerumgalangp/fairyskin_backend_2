@@ -1,0 +1,144 @@
+import { Request, Response } from 'express';
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { HeadersRouteInterface, HttpResponseRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import { PersonnelRouteCreateInterface, PersonnelRouteInterface, PersonnelRouteUpdateInterface } from '../interfaces/routes/PersonnelRouteInterface';
+import { usePersonnelService } from '../services/PersonnelService';
+
+const {
+    getPersonnel: getPersonnelService,
+    createPersonnel: createPersonnelService,
+    updatePersonnel: updatePersonnelService,
+    deletePersonnel: deletePersonnelService,
+    restorePersonnel: restorePersonnelService
+} = usePersonnelService();
+
+export const usePersonnelController = () => {
+    const getPersonnel = async (req: Request, res: Response) => {
+        try {
+            const request: PersonnelRouteInterface = req.query;
+            const headers = req.headers as HeadersRouteInterface;
+            const response: HttpResponseRouteInterface = await getPersonnelService(request, headers);
+            res.status(response.statusCode).json(response);
+        } catch (err) {
+            console.log('Error Controller: getPersonnelService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const createPersonnel = async (req: Request, res: Response) => {
+        try {
+            const request: PersonnelRouteCreateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            console.log('--------------');
+            console.log(request);
+            console.log('--------------');
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await createPersonnelService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: createPersonnelService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const updatePersonnel = async (req: Request, res: Response) => {
+        try {
+            const request: PersonnelRouteUpdateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await updatePersonnelService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: updatePersonnelService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const deletePersonnel = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            let response: HttpResponseRouteInterface;
+            const userId = req.userId;
+            const userTable = req.userTable;
+
+            console.log('--------------');
+            console.log(id);
+            console.log('--------------');
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await deletePersonnelService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: deletePersonnelService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const restorePersonnel = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId || !userTable) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await restorePersonnelService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: restorePersonnelService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    return {
+        getPersonnel,
+        createPersonnel,
+        updatePersonnel,
+        deletePersonnel,
+        restorePersonnel
+    };
+};

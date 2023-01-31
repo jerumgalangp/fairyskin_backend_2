@@ -1,0 +1,80 @@
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { usePersonnelDao } from '../dao/PersonnelDao.ts_remove';
+import { HeadersRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import { PersonnelRouteCreateInterface, PersonnelRouteInterface, PersonnelRouteUpdateInterface } from '../interfaces/routes/PersonnelRouteInterface';
+import { useTransformPaginationPayload } from '../transformers/Pagination';
+import {
+    usePersonnelTransformCreatePayload,
+    usePersonnelTransformDeletePayload,
+    usePersonnelTransformPayload,
+    usePersonnelTransformRestorePayload,
+    usePersonnelTransformUpdatePayload
+} from '../transformers/PersonnelTransformer';
+const {
+    getPersonnel: getPersonnelDao,
+    createPersonnel: createPersonnelDao,
+    updatePersonnel: updatePersonnelDao,
+    deletePersonnel: deletePersonnelDao,
+    restorePersonnel: restorePersonnelDao
+} = usePersonnelDao();
+
+export const usePersonnelService = () => {
+    const getPersonnel = async (request: PersonnelRouteInterface, headers: HeadersRouteInterface) => {
+        try {
+            const transformedPagination = useTransformPaginationPayload(headers);
+            const payload = usePersonnelTransformPayload(request);
+            return await getPersonnelDao(payload, transformedPagination, headers);
+        } catch (err) {
+            console.log('Error Service: getPersonnelDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const createPersonnel = async (userData: { id: string; table: string }, request: PersonnelRouteCreateInterface) => {
+        try {
+            const payload = usePersonnelTransformCreatePayload(userData, request);
+            return await createPersonnelDao(payload);
+        } catch (err) {
+            console.log('Error Service: createPersonnelDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const updatePersonnel = async (userData: { id: string; table: string }, request: PersonnelRouteUpdateInterface) => {
+        try {
+            const payload = usePersonnelTransformUpdatePayload(userData, request);
+            return await updatePersonnelDao(request.id, payload);
+        } catch (err) {
+            console.log('Error Service: updatePersonnel -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const deletePersonnel = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = usePersonnelTransformDeletePayload(userData);
+            return await deletePersonnelDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: deletePersonnelDao -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    const restorePersonnel = async (userData: { id: string; table: string }, id: string) => {
+        try {
+            const payload = usePersonnelTransformRestorePayload(userData);
+            return await restorePersonnelDao(id, payload);
+        } catch (err) {
+            console.log('Error Service: restorePersonnel -> ', err);
+            return HTTP_RESPONSES[HttpResponseType.ServerError];
+        }
+    };
+
+    return {
+        getPersonnel,
+        createPersonnel,
+        updatePersonnel,
+        deletePersonnel,
+        restorePersonnel
+    };
+};

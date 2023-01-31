@@ -1,0 +1,13 @@
+import { Router as useRouter } from 'express';
+import { useHolidayController } from '../controllers/HolidayController.ts_remove';
+
+const Router: useRouter = useRouter();
+const { getHoliday, createHoliday, updateHoliday, deleteHoliday, restoreHoliday } = useHolidayController();
+
+Router.get('/holiday', getHoliday);
+Router.post('/holiday', createHoliday);
+Router.put('/holiday', updateHoliday);
+Router.delete('/holiday', deleteHoliday);
+Router.put('/holiday/restore', restoreHoliday);
+
+export default Router;

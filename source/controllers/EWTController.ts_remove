@@ -1,0 +1,130 @@
+import { Request, Response } from 'express';
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { EWTRouteCreateInterface, EWTRouteInterface, EWTRouteUpdateInterface } from '../interfaces/routes/EWTRouteInterface';
+import { HeadersRouteInterface, HttpResponseRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import { useEWTService } from '../services/EWTService.ts_remove';
+
+const { getEWT: getEWTService, createEWT: createEWTService, updateEWT: updateEWTService, deleteEWT: deleteEWTService, restoreEWT: restoreEWTService } = useEWTService();
+
+export const useEWTController = () => {
+    const getEWT = async (req: Request, res: Response) => {
+        try {
+            const request: EWTRouteInterface = req.query;
+            const headers = req.headers as HeadersRouteInterface;
+            const response: HttpResponseRouteInterface = await getEWTService(request, headers);
+            res.status(response.statusCode).json(response);
+        } catch (err) {
+            console.log('Error Controller: getEWTService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const createEWT = async (req: Request, res: Response) => {
+        try {
+            const request: EWTRouteCreateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await createEWTService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: createEWTService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const updateEWT = async (req: Request, res: Response) => {
+        try {
+            const request: EWTRouteUpdateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await updateEWTService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: updateEWTService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const deleteEWT = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            let response: HttpResponseRouteInterface;
+            const userId = req.userId;
+            const userTable = req.userTable;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await deleteEWTService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: deleteEWTService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const restoreEWT = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await restoreEWTService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: restoreEWTService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    return {
+        getEWT,
+        createEWT,
+        updateEWT,
+        deleteEWT,
+        restoreEWT
+    };
+};

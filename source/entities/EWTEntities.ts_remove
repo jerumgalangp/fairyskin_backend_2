@@ -1,0 +1,44 @@
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { ORM_DB_SCHEMA } from '../config/config';
+import { Entities } from '../constant/Entities';
+import { CommonEntity } from './Common';
+import { PersonnelEntity } from './PersonnelEntities';
+
+@Entity(Entities.EWT, { schema: ORM_DB_SCHEMA })
+export class EWTEntity extends CommonEntity {
+    @Column({ nullable: false })
+    ewt_reference_number: string;
+
+    @Column({ nullable: false })
+    ewt_amount: string;
+
+    @Column({ nullable: false })
+    ewt_due_date: string;
+
+    @Column({ nullable: true })
+    ewt_collected_date: string;
+
+    @Column({ nullable: false })
+    payment_ewt_percentage: string;
+
+    // /* Foreign Ids */
+    // @Column({ nullable: false })
+    // payment_ewt_data_id?: string;
+
+    // /* Relationships */
+    // @OneToOne(() => PaymentEntity, ({ ewt_payment }) => ewt_payment, { onDelete: 'CASCADE', cascade: true })
+    // @JoinColumn({ name: 'payment_ewt_data_id' })
+    // payment_ewt_data: PaymentEntity;
+
+    // @OneToOne(() => PaymentEntity, (payment) => payment.ewt_id) // specify inverse side as a second parameter
+    // payment: PaymentEntity;
+
+    /* Foreign Ids */
+    @Column({ nullable: true })
+    ewt_personnel_id?: string;
+
+    /* Relationships */
+    @ManyToOne(() => PersonnelEntity, ({ personnel_ewt }) => personnel_ewt)
+    @JoinColumn({ name: 'ewt_personnel_id' })
+    ewt_personnel: PersonnelEntity;
+}

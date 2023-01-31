@@ -1,0 +1,136 @@
+import { Request, Response } from 'express';
+import { HttpResponseType, HTTP_RESPONSES } from '../constant/HttpConstant';
+import { HolidayRouteCreateInterface, HolidayRouteInterface, HolidayRouteUpdateInterface } from '../interfaces/routes/HolidayRouteInterface';
+import { HeadersRouteInterface, HttpResponseRouteInterface } from '../interfaces/routes/HttpRoutesInterface';
+import { useHolidayService } from '../services/HolidayService.ts_remove';
+
+const {
+    getHoliday: getHolidayService,
+    createHoliday: createHolidayService,
+    updateHoliday: updateHolidayService,
+    deleteHoliday: deleteHolidayService,
+    restoreHoliday: restoreHolidayService
+} = useHolidayService();
+
+export const useHolidayController = () => {
+    const getHoliday = async (req: Request, res: Response) => {
+        try {
+            const request: HolidayRouteInterface = req.query;
+            const headers = req.headers as HeadersRouteInterface;
+            const response: HttpResponseRouteInterface = await getHolidayService(request, headers);
+            res.status(response.statusCode).json(response);
+        } catch (err) {
+            console.log('Error Controller: getHolidayService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const createHoliday = async (req: Request, res: Response) => {
+        try {
+            const request: HolidayRouteCreateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await createHolidayService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: createHolidayService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const updateHoliday = async (req: Request, res: Response) => {
+        try {
+            const request: HolidayRouteUpdateInterface = req.body;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await updateHolidayService(userData, request);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: updateHolidayService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const deleteHoliday = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            let response: HttpResponseRouteInterface;
+            const userId = req.userId;
+            const userTable = req.userTable;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await deleteHolidayService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: deleteHolidayService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    const restoreHoliday = async (req: Request, res: Response) => {
+        try {
+            const id = req.query.id as string;
+            const userId = req.userId;
+            const userTable = req.userTable;
+            let response: HttpResponseRouteInterface;
+
+            if (!userId) {
+                response = {
+                    ...HTTP_RESPONSES[HttpResponseType.ServerError],
+                    message: 'User is not authorized to access this api.'
+                };
+                res.status(response.statusCode).json(response);
+            } else {
+                const userData = { id: userId, table: userTable };
+                response = await restoreHolidayService(userData, id);
+                res.status(response.statusCode).json(response);
+            }
+        } catch (err) {
+            console.log('Error Controller: restoreHolidayService -> ', err);
+            const response: HttpResponseRouteInterface = HTTP_RESPONSES[HttpResponseType.ServerError];
+            res.status(response.statusCode).json(response);
+        }
+    };
+
+    return {
+        getHoliday,
+        createHoliday,
+        updateHoliday,
+        deleteHoliday,
+        restoreHoliday
+    };
+};
